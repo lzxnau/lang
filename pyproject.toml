@@ -1,0 +1,41 @@
+[tool.ruff]
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".ropeproject",
+    ".ruff_cache",
+    "bin",
+    "doc",
+    "env",
+]
+
+line-length = 80
+indent-width = 4
+target-version = "py312"
+unsafe-fixes = true
+
+[tool.ruff.lint]
+select = ["F", "E", "W", "UP", "D", "PL", "NPY", "PD", "N", "I"]
+ignore = ["D203", "D212", "F401"]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.12"
+
+[[tool.mypy.overrides]]
+module = [
+    "lang.*",
+]
+ignore_missing_imports = true
+
+[tool.pylsp-mypy]
+enabled = true
+live_mode = true
+strict = true
