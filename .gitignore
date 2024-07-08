@@ -6,22 +6,13 @@
 !/bin/
 !/doc/
 !/env/
-!/out/
 !/src/
 
 /*/**/*
 !/*/**/*/
 
 !/env/pack.py
-!/env/rdzy.txt
+!/env/lang.txt
 !/env/ubuntu.sh
-!/env/macos.sh
-!/env/v312.sh
-!/env/v312.txt
 !/doc/*.md
-!/src/rdzy/**/*.py
-!/out/**/*.dat
-!/out/**/*.asr
-!/out/**/*.ini
-
-flycheck*
+!/src/lang/**/*.py

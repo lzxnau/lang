@@ -1,0 +1,6 @@
+pip==24.1.2
+setuptools==70.2.0
+wheel==0.43.0
+langchain==0.2.6
+langchain-huggingface==0.0.3
+langgraph==0.1.5
