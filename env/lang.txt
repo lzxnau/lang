@@ -1,8 +1,10 @@
 pip==24.1.2
-setuptools==70.2.0
+setuptools==70.3.0
 wheel==0.43.0
 ruff==0.5.1
 mypy==1.10.1
 langchain==0.2.7
+langchain_community==0.2.7
 langchain-huggingface==0.0.3
-langgraph==0.1.5
+langgraph==0.1.6
+beautifulsoup4==4.12.3
