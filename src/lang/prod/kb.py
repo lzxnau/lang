@@ -5,13 +5,12 @@ Version: 2024.07.10.01
 """
 
 import bs4
+from lang.util.decorators import Timer
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_huggingface import HuggingFaceEmbeddings
-
-from src.lang.util.decorators import Timer
 
 
 class KB:

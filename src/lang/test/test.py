@@ -4,7 +4,7 @@ Test Model.
 Version: 2024.07.09.01
 """
 
-from src.lang.prod.kb import KB
+from lang.prod.kb import KB
 
 
 class Test:
