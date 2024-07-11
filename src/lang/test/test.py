@@ -4,8 +4,13 @@ Test Model.
 Version: 2024.07.09.01
 """
 
+import time
+
 from lang.prod.kb import KB
 from lang.prod.lm import OLM
+from langchain import hub
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
 
 
 class Test:
@@ -24,16 +29,37 @@ class Test:
         """Test prod function."""
         urls = [
             "https://lilianweng.github.io/posts/2023-06-23-agent/",
-            "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/",
-            "https://lilianweng.github.io/posts/2023-10-25-adv-attack-llm/",
         ]
 
         kb = KB(urls)
-        kb.get_retriever()
+        retriever = kb.get_retriever()
+
+        prompt = hub.pull("rlm/rag-prompt")
+
+        def format_docs(docs) -> str:
+            """Format docs."""
+            return "\n\n".join(doc.page_content for doc in docs)
 
         mn = "llama3"
         lm = OLM(mn)
-        lm.get_model()
+        llm = lm.get_model()
+
+        rag_chain = (
+            {
+                "context": retriever | format_docs,
+                "question": RunnablePassthrough(),
+            }
+            | prompt
+            | llm
+            | StrOutputParser()
+        )
+
+        stime = time.time()
+        for chunk in rag_chain.stream("What is Task Decomposition?"):
+            print(chunk, end="", flush=True)
+
+        etime = time.time()
+        print(f"rag_chain took {etime - stime} seconds.")
 
     def test_lang(self) -> None:
         """Test Python Language function."""
