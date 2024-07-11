@@ -5,6 +5,7 @@ Version: 2024.07.09.01
 """
 
 from lang.prod.kb import KB
+from lang.prod.lm import OLM
 
 
 class Test:
@@ -16,8 +17,11 @@ class Test:
 
     def process(self) -> None:
         """Process function."""
-        print(f"This is {self.name} class.")
+        print(f"This is {self.name} class.\n")
+        self.test_prod()
 
+    def test_prod(self) -> None:
+        """Test prod function."""
         urls = [
             "https://lilianweng.github.io/posts/2023-06-23-agent/",
             "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/",
@@ -26,6 +30,10 @@ class Test:
 
         kb = KB(urls)
         kb.get_retriever()
+
+        mn = "llama3"
+        lm = OLM(mn)
+        lm.get_model()
 
     def test_lang(self) -> None:
         """Test Python Language function."""
