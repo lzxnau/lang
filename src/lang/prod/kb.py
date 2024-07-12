@@ -9,7 +9,9 @@ from lang.util.decorators import Timer
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import WebBaseLoader
-from langchain_core.vectorstores import VectorStoreRetriever
+from langchain_core.documents import Document
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables.base import Runnable, RunnableParallel
 from langchain_huggingface import HuggingFaceEmbeddings
 
 
@@ -24,8 +26,8 @@ class KB:
         self.em = "sentence-transformers/all-MiniLM-L6-v2"
 
     @Timer.fxn_run
-    def get_retriever(self) -> VectorStoreRetriever:
-        """Get retriever."""
+    def get_chain(self) -> Runnable:
+        """Get KnowledgeBase Chain."""
         loader = WebBaseLoader(
             web_paths=self.urls,
             bs_kwargs=dict(
@@ -39,15 +41,26 @@ class KB:
             ),
         )
         docs = loader.load()
-        text_splitter = RecursiveCharacterTextSplitter(
+        splitter = RecursiveCharacterTextSplitter(
             chunk_size=250, chunk_overlap=20
         )
-        doc_splits = text_splitter.split_documents(docs)
+        splits = splitter.split_documents(docs)
         embeddings = HuggingFaceEmbeddings(model_name=self.em)
         vectorstore = Chroma.from_documents(
-            documents=doc_splits,
+            documents=splits,
             embedding=embeddings,
         )
         retriever = vectorstore.as_retriever()
+        chain = RunnableParallel(
+            {
+                "context": retriever | KB.format_docs,
+                "question": RunnablePassthrough(),
+            }
+        )
 
-        return retriever
+        return chain
+
+    @staticmethod
+    def format_docs(docs: list[Document]) -> str:
+        """Format docs."""
+        return "\n\n".join(doc.page_content for doc in docs)

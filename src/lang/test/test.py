@@ -10,7 +10,6 @@ from lang.prod.kb import KB
 from lang.prod.lm import OLM
 from langchain import hub
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
 
 
 class Test:
@@ -20,46 +19,41 @@ class Test:
         """Class initialization."""
         self.name = "Test"
 
-    def process(self) -> None:
-        """Process function."""
-        print(f"This is {self.name} class.\n")
-        self.test_prod()
-
-    def test_prod(self) -> None:
-        """Test prod function."""
-        urls = [
+    def test_cfg_rag(self) -> None:
+        """Test config rag."""
+        # Knowledgebase urls
+        self.urls = [
             "https://lilianweng.github.io/posts/2023-06-23-agent/",
         ]
 
-        kb = KB(urls)
-        retriever = kb.get_retriever()
+        # chat model name
+        self.mn = "llama3"
+
+        self.test_prod()
+
+    def process(self) -> None:
+        """Process function."""
+        print(f"This is {self.name} class.\n")
+        self.test_cfg_rag()
+
+    def test_prod(self) -> None:
+        """Test prod function."""
+        kb = KB(self.urls)
+        kb_chain = kb.get_chain()
 
         prompt = hub.pull("rlm/rag-prompt")
 
-        def format_docs(docs) -> str:
-            """Format docs."""
-            return "\n\n".join(doc.page_content for doc in docs)
-
-        mn = "llama3"
-        lm = OLM(mn)
+        lm = OLM(self.mn)
         llm = lm.get_model()
 
-        rag_chain = (
-            {
-                "context": retriever | format_docs,
-                "question": RunnablePassthrough(),
-            }
-            | prompt
-            | llm
-            | StrOutputParser()
-        )
+        rag_chain = kb_chain | prompt | llm | StrOutputParser()
 
         stime = time.time()
         for chunk in rag_chain.stream("What is Task Decomposition?"):
             print(chunk, end="", flush=True)
 
         etime = time.time()
-        print(f"rag_chain took {etime - stime} seconds.")
+        print(f"\nrag_chain took {etime - stime} seconds.")
 
     def test_lang(self) -> None:
         """Test Python Language function."""
