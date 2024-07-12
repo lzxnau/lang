@@ -4,7 +4,18 @@ LM Module.
 Version: 2024.07.11.01
 """
 
+from enum import StrEnum
+
 from langchain_community.chat_models import ChatOllama
+
+
+class EOM(StrEnum):
+    """Enum of Ollama Local Model Names."""
+
+    L08 = "llama3"
+    P14 = "phi3:medium"
+    G27 = "gemma2:27b"
+    L70 = "llama3:70b"
 
 
 class OLM:  # ChatOllama local model

@@ -6,7 +6,7 @@ Version: 2024.07.09.01
 
 from lang.prod.kb import KB
 from lang.prod.lc import LC
-from lang.prod.lm import OLM
+from lang.prod.lm import EOM, OLM
 from langchain import hub
 from langchain_core.output_parsers import StrOutputParser
 
@@ -26,7 +26,7 @@ class Test:
         ]
 
         # chat model name
-        self.mn = "llama3"
+        self.mn = EOM.L70
 
         # Query
         self.query = "What is Task Decomposition?"
