@@ -7,6 +7,8 @@ Version: 2024.07.11.01
 from enum import StrEnum
 
 from langchain_community.chat_models import ChatOllama
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables.base import Runnable
 
 
 class EOM(StrEnum):
@@ -41,6 +43,7 @@ class OLM:  # ChatOllama local model
             )
         )
 
-    def get_model(self) -> ChatOllama:
-        """Get LLM model."""
-        return self.llm
+    def get_chain(self) -> Runnable:
+        """Get LLM model chain."""
+        chain = self.llm | StrOutputParser()
+        return chain

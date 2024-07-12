@@ -17,8 +17,8 @@ class LC:
         self.chain: Runnable = chain
 
     @Timer.fxn_run
-    def get_output(self) -> None:
-        """Get chain output."""
+    def stream_out(self) -> None:
+        """Get lang chain stream output."""
         for chunk in self.chain.stream(self.query):
             print(chunk, end="", flush=True)
         print()

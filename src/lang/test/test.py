@@ -7,8 +7,6 @@ Version: 2024.07.09.01
 from lang.prod.kb import KB
 from lang.prod.lc import LC
 from lang.prod.lm import EOM, OLM
-from langchain import hub
-from langchain_core.output_parsers import StrOutputParser
 
 
 class Test:
@@ -43,14 +41,12 @@ class Test:
         kb = KB(self.urls)
         kb_chain = kb.get_chain()
 
-        prompt = hub.pull("rlm/rag-prompt")
-
         lm = OLM(self.mn)
-        llm = lm.get_model()
+        lm_chain = lm.get_chain()
 
-        rag_chain = kb_chain | prompt | llm | StrOutputParser()
+        rag_chain = kb_chain | lm_chain
         lc = LC(self.query, rag_chain)
-        lc.get_output()
+        lc.stream_out()
 
     def test_lang(self) -> None:
         """Test Python Language function."""

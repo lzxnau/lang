@@ -6,12 +6,13 @@ Version: 2024.07.10.01
 
 import bs4
 from lang.util.decorators import Timer
+from langchain import hub
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.documents import Document
 from langchain_core.runnables import RunnablePassthrough
-from langchain_core.runnables.base import Runnable, RunnableParallel
+from langchain_core.runnables.base import Runnable
 from langchain_huggingface import HuggingFaceEmbeddings
 
 
@@ -51,12 +52,11 @@ class KB:
             embedding=embeddings,
         )
         retriever = vectorstore.as_retriever()
-        chain = RunnableParallel(
-            {
-                "context": retriever | KB.format_docs,
-                "question": RunnablePassthrough(),
-            }
-        )
+        prompt = hub.pull("rlm/rag-prompt")
+        chain = {
+            "context": retriever | KB.format_docs,
+            "question": RunnablePassthrough(),
+        } | prompt
 
         return chain
 
