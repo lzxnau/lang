@@ -47,3 +47,7 @@ class OLM:  # ChatOllama local model
         """Get LLM model chain."""
         chain = self.llm | StrOutputParser()
         return chain
+
+    def get_llm(self) -> ChatOllama:
+        """Get Ollama local LLM model."""
+        return self.llm

@@ -6,6 +6,7 @@ Version: 2024.07.09.01
 
 from lang.prod.kb import KB
 from lang.prod.lc import LC
+from lang.prod.lg import LG
 from lang.prod.lm import EOM, OLM
 
 
@@ -34,7 +35,12 @@ class Test:
     def process(self) -> None:
         """Process function."""
         print(f"This is {self.name} class.\n")
-        self.test_cfg_rag1()
+        self.test_lg()
+
+    def test_lg(self) -> None:
+        """Test LangGraph process."""
+        lg = LG()
+        lg.process()
 
     def test_rag(self) -> None:
         """Test prod function."""
