@@ -20,6 +20,7 @@ from langchain_core.messages import (
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.base import Runnable
 from langchain_core.tools import Tool
+from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, StateGraph
 
 
@@ -83,7 +84,9 @@ class LG:
         self.smartAN = LG.anode_smart()
         self.workflow = StateGraph(AgentState)
         self.graph_make()
-        self.graph = self.workflow.compile()
+        memory = SqliteSaver.from_conn_string(":memory:")
+        self.config = {"configurable": {"thread_id": "2"}}
+        self.graph = self.workflow.compile(checkpointer=memory)
 
     def process(self) -> None:
         """Process LangGraph workflow."""
@@ -100,7 +103,6 @@ class LG:
                     break
                 case umsg if len(umsg) > size:
                     self.graph_proc(umsg)
-                    print()
                 case _:
                     pass
 
@@ -117,18 +119,23 @@ class LG:
 
         :param umsg: User message as input.
         """
-        events = self.graph.stream(
+        for event in self.graph.stream(
             {
-                "messages": [HumanMessage(content=umsg)],
+                "messages": [
+                    HumanMessage(content=umsg),
+                ],
             },
-            # Maximum number of steps to take in the graph
-            {"recursion_limit": 150},
-        )
-        for s in events:
-            print()
-            print("Smart AI Response:")
-            print(s[self.smartAN.name]["messages"][0].content)
-            print()
+            self.config,
+            stream_mode="values",
+        ):
+            msg = event["messages"][-1]
+            if isinstance(msg, AIMessage):
+                print("\nSmart AI Response:")
+                print("-" * 80)
+                if isinstance(msg.content, str):
+                    msg = msg.content.replace("\n\n", "\n")
+                print(msg)
+                print("-" * 80)
 
     @staticmethod
     def anode_smart() -> AgentNode:
@@ -136,15 +143,15 @@ class LG:
         name = "SmartAgentNode"
         system_message = (
             "You should provide accurate data to use."
-            "Answer user question directly without any prompt in front."
-            "Join each sentence with new line."
+            "Answer user questions directly without any prompts in front."
+            "Each sentence in the response should be written on its own line."
         )
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
                     "system",
                     "You are a helpful AI assistant."
-                    "Please provide maximum three sentences as result."
+                    "Please provide a result with no more than three sentences."
                     "\n{system_message}",
                 ),
                 MessagesPlaceholder(variable_name="messages"),

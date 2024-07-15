@@ -24,7 +24,7 @@ class Timer:
                 rtime = f"{seconds}s"
             else:
                 rtime = f"{minutes}m {seconds}s"
-            text = f"{class_name}.{fxn.__name__} took {rtime} to execute."
+            text = f"{class_name}.{fxn.__name__} took {rtime} to execute.\n"
             print(text)
 
             return result
