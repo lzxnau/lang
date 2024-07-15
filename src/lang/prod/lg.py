@@ -4,7 +4,7 @@ LangGraph Module.
 Version: 2024.07.15.02
 """
 
-import operator
+import datetime
 from collections.abc import Callable, Sequence
 from typing import Annotated, TypedDict
 
@@ -22,12 +22,14 @@ from langchain_core.runnables.base import Runnable
 from langchain_core.tools import Tool
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
 
 
 class AgentState(TypedDict):
     """State between each agent/node."""
 
-    messages: Annotated[Sequence[BaseMessage], operator.add]
+    messages: Annotated[Sequence[BaseMessage], add_messages]
+    session_id: str
     sender: str
 
 
@@ -44,6 +46,8 @@ class AgentNode:
         """Class initialization."""
         # name for the agent and node
         self.name: str = kwargs["name"]
+        # session id
+        self.sid: str | None = None
         prompt = prompt.partial(system_message=kwargs["system_message"])
         if tools is not None:
             prompt = prompt.partial(
@@ -61,6 +65,13 @@ class AgentNode:
 
         It is a function to run a specific task.
         """
+        if self.sid is None:
+            self.sid = state["session_id"]
+        elif state["session_id"] != self.sid:
+            state["messages"] = [state["messages"][-1]]
+            self.sid = state["session_id"]
+
+        print(state)
         result = self.agent.invoke(state)
 
         if isinstance(result, ToolMessage):
@@ -72,6 +83,7 @@ class AgentNode:
 
         return {
             "messages": [result],
+            "session_id": state["session_id"],
             "sender": self.name,
         }
 
@@ -85,26 +97,48 @@ class LG:
         self.workflow = StateGraph(AgentState)
         self.graph_make()
         memory = SqliteSaver.from_conn_string(":memory:")
-        self.config = {"configurable": {"thread_id": "2"}}
+
         self.graph = self.workflow.compile(checkpointer=memory)
 
     def process(self) -> None:
         """Process LangGraph workflow."""
-        print("Please enter your question or Q for quit.")
+        print("#: Last input for a request without changing session id.")
+        print("@: Last input for a request with changing session id.")
+        print("$: quit.")
+        print("Please enter your question:\n")
         self.user_input()
 
-    def user_input(self, size: int = 4) -> None:
+    def user_input(self, size: int = 6) -> None:
         """User input."""
+        session: str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        req_msg = "User(finish a request with # or @):\n"
+        inp_msg = req_msg
+        msg = ""
         while True:
-            umsg = input("User: ")
+            gen_new: bool = False
+            umsg = input(inp_msg)
             umsg = umsg.strip()
-            match umsg:
-                case "Q":
-                    break
-                case umsg if len(umsg) > size:
-                    self.graph_proc(umsg)
-                case _:
-                    pass
+            if umsg == "$":
+                break
+            elif umsg in ["#", "@"] or len(umsg) > size:
+                match umsg[:1]:
+                    case "#":
+                        pass
+                    case "@":
+                        gen_new = True
+                    case _:
+                        msg += umsg + " "
+                        inp_msg = ""
+                        continue
+
+                umsg = umsg[1:].strip()
+                msg += umsg
+                if (gen_new and msg) or not gen_new:
+                    self.graph_proc(msg, session)
+                if gen_new:
+                    session = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                inp_msg = req_msg
+                msg = ""
 
     def graph_make(self) -> None:
         """Make LangGraph graph."""
@@ -113,24 +147,32 @@ class LG:
         self.workflow.add_edge(self.smartAN.name, END)
 
     @Timer.fxn_run
-    def graph_proc(self, umsg: str) -> None:
+    def graph_proc(
+        self,
+        umsg: str,
+        session: str,
+    ) -> None:
         """
         Process LangGraph workflow.
 
         :param umsg: User message as input.
+        :param session: User chat session.
         """
+        config = {"configurable": {"thread_id": "2"}}
+        print("\nSmart AI Response:")
         for event in self.graph.stream(
             {
                 "messages": [
                     HumanMessage(content=umsg),
                 ],
+                "session_id": session,
+                "sender": "User",
             },
-            self.config,
+            config,
             stream_mode="values",
         ):
             msg = event["messages"][-1]
             if isinstance(msg, AIMessage):
-                print("\nSmart AI Response:")
                 print("-" * 80)
                 if isinstance(msg.content, str):
                     msg = msg.content.replace("\n\n", "\n")
@@ -142,8 +184,8 @@ class LG:
         """Create  a smart agent node."""
         name = "SmartAgentNode"
         system_message = (
-            "You should provide accurate data to use."
-            "Answer user questions directly without any prompts in front."
+            "Answer users' questions directly and "
+            "no prompts should be present before/after answering."
             "Each sentence in the response should be written on its own line."
         )
         prompt = ChatPromptTemplate.from_messages(
