@@ -1,7 +1,7 @@
 """
 LangGraph Module.
 
-Version: 2024.07.14.01
+Version: 2024.07.15.02
 """
 
 import operator
@@ -83,13 +83,26 @@ class LG:
         self.smartAN = LG.anode_smart()
         self.workflow = StateGraph(AgentState)
         self.graph_make()
-        self.graph_comp()
-        self.graph = self.graph_comp()
+        self.graph = self.workflow.compile()
 
     def process(self) -> None:
         """Process LangGraph workflow."""
-        umsg = "Give me an example for langchain prompt template."
-        self.graph_run(umsg)
+        print("Please enter your question or Q for quit.")
+        self.user_input()
+
+    def user_input(self, size: int = 4) -> None:
+        """User input."""
+        while True:
+            umsg = input("User: ")
+            umsg = umsg.strip()
+            match umsg:
+                case "Q":
+                    break
+                case umsg if len(umsg) > size:
+                    self.graph_proc(umsg)
+                    print()
+                case _:
+                    pass
 
     def graph_make(self) -> None:
         """Make LangGraph graph."""
@@ -97,15 +110,10 @@ class LG:
         self.workflow.add_edge(START, self.smartAN.name)
         self.workflow.add_edge(self.smartAN.name, END)
 
-    def graph_comp(self):
-        """Compile LangGraph workflow."""
-        graph = self.workflow.compile()
-        return graph
-
     @Timer.fxn_run
-    def graph_run(self, umsg: str) -> None:
+    def graph_proc(self, umsg: str) -> None:
         """
-        Run LangGraph workflow.
+        Process LangGraph workflow.
 
         :param umsg: User message as input.
         """
@@ -117,14 +125,20 @@ class LG:
             {"recursion_limit": 150},
         )
         for s in events:
-            print(s)
-            print("----")
+            print()
+            print("Smart AI Response:")
+            print(s[self.smartAN.name]["messages"][0].content)
+            print()
 
     @staticmethod
     def anode_smart() -> AgentNode:
         """Create  a smart agent node."""
         name = "SmartAgentNode"
-        system_message = "You should provide accurate data to use."
+        system_message = (
+            "You should provide accurate data to use."
+            "Answer user question directly without any prompt in front."
+            "Join each sentence with new line."
+        )
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
