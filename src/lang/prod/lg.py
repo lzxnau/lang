@@ -29,7 +29,7 @@ class AgentState(TypedDict):
     """State between each agent/node."""
 
     messages: Annotated[Sequence[BaseMessage], add_messages]
-    session_id: str
+    reid: str
     sender: str
 
 
@@ -46,8 +46,8 @@ class AgentNode:
         """Class initialization."""
         # name for the agent and node
         self.name: str = kwargs["name"]
-        # session id
-        self.sid: str | None = None
+        # request id
+        self.reid: str | None = None
         prompt = prompt.partial(system_message=kwargs["system_message"])
         if tools is not None:
             prompt = prompt.partial(
@@ -65,11 +65,19 @@ class AgentNode:
 
         It is a function to run a specific task.
         """
-        if self.sid is None:
-            self.sid = state["session_id"]
-        elif state["session_id"] != self.sid:
+        if self.reid is None:
+            self.reid = state["reid"]
+        elif state["reid"] != self.reid:
+            # A new reqeust just keeps last human message
             state["messages"] = [state["messages"][-1]]
-            self.sid = state["session_id"]
+            self.reid = state["reid"]
+        else:
+            print(state)
+            state["messages"] = [
+                msg
+                for msg in state["messages"]
+                if msg.additional_kwargs.get("reid") == self.reid
+            ]
 
         print(state)
         result = self.agent.invoke(state)
@@ -78,12 +86,13 @@ class AgentNode:
             pass
         else:
             result = AIMessage(
-                **result.dict(exclude={"type", "name"}), name=self.name
+                **result.dict(exclude={"type", "name"}),
+                name=self.name,
             )
-
+            result.additional_kwargs["reid"] = self.reid
         return {
             "messages": [result],
-            "session_id": state["session_id"],
+            "reid": self.reid,
             "sender": self.name,
         }
 
@@ -110,7 +119,8 @@ class LG:
 
     def user_input(self, size: int = 6) -> None:
         """User input."""
-        session: str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        # request id
+        reid: str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
         req_msg = "User(finish a request with # or @):\n"
         inp_msg = req_msg
         msg = ""
@@ -134,9 +144,9 @@ class LG:
                 umsg = umsg[1:].strip()
                 msg += umsg
                 if (gen_new and msg) or not gen_new:
-                    self.graph_proc(msg, session)
+                    self.graph_proc(msg, reid)
                 if gen_new:
-                    session = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                    reid = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
                 inp_msg = req_msg
                 msg = ""
 
@@ -149,23 +159,25 @@ class LG:
     @Timer.fxn_run
     def graph_proc(
         self,
-        umsg: str,
-        session: str,
+        umsg: str,  # user message
+        reid: str,  # request id
     ) -> None:
         """
         Process LangGraph workflow.
 
         :param umsg: User message as input.
-        :param session: User chat session.
+        :param reid: User request id.
         """
         config = {"configurable": {"thread_id": "2"}}
         print("\nSmart AI Response:")
         for event in self.graph.stream(
             {
                 "messages": [
-                    HumanMessage(content=umsg),
+                    HumanMessage(
+                        content=umsg, additional_kwargs={"reid": reid}
+                    ),
                 ],
-                "session_id": session,
+                "reid": reid,
                 "sender": "User",
             },
             config,
