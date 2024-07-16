@@ -1,7 +1,7 @@
 """
 LangGraph Module.
 
-Version: 2024.07.15.02
+Version: 2024.07.16.03
 """
 
 import datetime
@@ -29,7 +29,7 @@ class AgentState(TypedDict):
     """State between each agent/node."""
 
     messages: Annotated[Sequence[BaseMessage], add_messages]
-    reid: str
+    coid: str  # context id
     sender: str
 
 
@@ -46,8 +46,8 @@ class AgentNode:
         """Class initialization."""
         # name for the agent and node
         self.name: str = kwargs["name"]
-        # request id
-        self.reid: str | None = None
+        # context id
+        self.coid: str | None = None
         prompt = prompt.partial(system_message=kwargs["system_message"])
         if tools is not None:
             prompt = prompt.partial(
@@ -65,21 +65,21 @@ class AgentNode:
 
         It is a function to run a specific task.
         """
-        if self.reid is None:
-            self.reid = state["reid"]
-        elif state["reid"] != self.reid:
-            # A new reqeust just keeps last human message
+        if self.coid is None:
+            self.coid = state["coid"]
+        elif state["coid"] != self.coid:
+            # In a new context it keeps the last human message
             state["messages"] = [state["messages"][-1]]
-            self.reid = state["reid"]
+            self.coid = state["coid"]
         else:
-            print(state)
+            # In an existing context, it keeps all messages
+            # with the same context ID
             state["messages"] = [
                 msg
                 for msg in state["messages"]
-                if msg.additional_kwargs.get("reid") == self.reid
+                if msg.additional_kwargs.get("coid") == self.coid
             ]
 
-        print(state)
         result = self.agent.invoke(state)
 
         if isinstance(result, ToolMessage):
@@ -89,10 +89,10 @@ class AgentNode:
                 **result.dict(exclude={"type", "name"}),
                 name=self.name,
             )
-            result.additional_kwargs["reid"] = self.reid
+            result.additional_kwargs["coid"] = self.coid
         return {
             "messages": [result],
-            "reid": self.reid,
+            "coid": self.coid,
             "sender": self.name,
         }
 
@@ -106,22 +106,21 @@ class LG:
         self.workflow = StateGraph(AgentState)
         self.graph_make()
         memory = SqliteSaver.from_conn_string(":memory:")
-
         self.graph = self.workflow.compile(checkpointer=memory)
 
     def process(self) -> None:
         """Process LangGraph workflow."""
-        print("#: Last input for a request without changing session id.")
-        print("@: Last input for a request with changing session id.")
-        print("$: quit.")
+        print("#: The next question will be in the same context.")
+        print("@: The next question will be in a new context.")
+        print("$: Quit.")
         print("Please enter your question:\n")
         self.user_input()
 
     def user_input(self, size: int = 6) -> None:
         """User input."""
-        # request id
-        reid: str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        req_msg = "User(finish a request with # or @):\n"
+        # context id
+        coid: str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        req_msg = "User(#:same/@:new context):\n"
         inp_msg = req_msg
         msg = ""
         while True:
@@ -144,9 +143,9 @@ class LG:
                 umsg = umsg[1:].strip()
                 msg += umsg
                 if (gen_new and msg) or not gen_new:
-                    self.graph_proc(msg, reid)
+                    self.graph_proc(msg, coid)
                 if gen_new:
-                    reid = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                    coid = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
                 inp_msg = req_msg
                 msg = ""
 
@@ -160,13 +159,13 @@ class LG:
     def graph_proc(
         self,
         umsg: str,  # user message
-        reid: str,  # request id
+        coid: str,  # context id
     ) -> None:
         """
         Process LangGraph workflow.
 
         :param umsg: User message as input.
-        :param reid: User request id.
+        :param coid: User message context id.
         """
         config = {"configurable": {"thread_id": "2"}}
         print("\nSmart AI Response:")
@@ -174,10 +173,10 @@ class LG:
             {
                 "messages": [
                     HumanMessage(
-                        content=umsg, additional_kwargs={"reid": reid}
+                        content=umsg, additional_kwargs={"coid": coid}
                     ),
                 ],
-                "reid": reid,
+                "coid": coid,
                 "sender": "User",
             },
             config,
@@ -197,7 +196,7 @@ class LG:
         name = "SmartAgentNode"
         system_message = (
             "Answer users' questions directly and "
-            "no prompts should be present before/after answering."
+            "no prompts should be present before or after answering."
             "Each sentence in the response should be written on its own line."
         )
         prompt = ChatPromptTemplate.from_messages(
