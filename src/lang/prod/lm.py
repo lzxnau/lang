@@ -23,8 +23,11 @@ class EOM(StrEnum):
 class OLM:  # ChatOllama local model
     """OLM Class."""
 
-    def __init__(self, mn: str, form: str = "", temp: float = 0.1):
+    def __init__(self, name: str, mn: str, form: str = "", temp: float = 0.1):
         """Class initialization."""
+        # assistant name
+        self.name = name
+
         # model name
         self.mn: str = mn
 

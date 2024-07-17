@@ -4,11 +4,10 @@ LangGraph Module.
 Version: 2024.07.16.03
 """
 
-import datetime
 from collections.abc import Callable, Sequence
 from typing import Annotated, TypedDict
 
-from lang.prod.lm import EOM, OLM
+from lang.prod.lm import OLM
 from lang.util.decorators import Timer
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import (
@@ -19,6 +18,7 @@ from langchain_core.messages import (
 )
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.base import Runnable
+from langchain_core.runnables.config import RunnableConfig
 from langchain_core.tools import Tool
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.graph import END, START, StateGraph
@@ -39,7 +39,7 @@ class AgentNode:
     def __init__(
         self,
         prompt: ChatPromptTemplate,
-        llm: BaseChatModel = OLM(EOM.L08).get_llm(),
+        llm: BaseChatModel,
         tools: list[Tool] | None = None,
         **kwargs: str,
     ):
@@ -48,16 +48,27 @@ class AgentNode:
         self.name: str = kwargs["name"]
         # context id
         self.coid: str | None = None
-        prompt = prompt.partial(system_message=kwargs["system_message"])
-        if tools is not None:
-            prompt = prompt.partial(
-                tool_names=", ".join([tool.name for tool in tools])
+        self.prompt: ChatPromptTemplate = prompt
+        self.prompt = self.prompt.partial(
+            system_message=kwargs["system_message"]
+        )
+        self.tools: list[Tool] | None = tools
+        if self.tools is not None:
+            self.prompt = self.prompt.partial(
+                tool_names=", ".join([tool.name for tool in self.tools])
             )
 
-        self.agent: Runnable = prompt | (
-            llm.bind_tools(tools) if tools is not None else llm
+        self.agent: Runnable = self.prompt | (
+            llm.bind_tools(self.tools) if self.tools is not None else llm
         )
         self.node: Callable[[AgentState], AgentState] = self.build_node
+
+    def change_llm(self, olm: OLM) -> None:
+        """Change agent llm."""
+        llm = olm.get_llm()
+        self.agent = self.prompt | (
+            llm.bind_tools(self.tools) if self.tools is not None else llm
+        )
 
     def build_node(self, state: AgentState) -> AgentState:
         """
@@ -100,54 +111,14 @@ class AgentNode:
 class LG:
     """LG Class."""
 
-    def __init__(self):
+    def __init__(self, olm: OLM):
         """Class Initialization."""
-        self.smartAN = LG.anode_smart()
+        self.olm = olm
+        self.smartAN = self.anode_smart()
         self.workflow = StateGraph(AgentState)
         self.graph_make()
         memory = SqliteSaver.from_conn_string(":memory:")
         self.graph = self.workflow.compile(checkpointer=memory)
-
-    def process(self) -> None:
-        """Process LangGraph workflow."""
-        print("#: The next question will be in the same context.")
-        print("@: The next question will be in a new context.")
-        print("$: Quit.")
-        print("Please enter your question:\n")
-        self.user_input()
-
-    def user_input(self, size: int = 6) -> None:
-        """User input."""
-        # context id
-        coid: str = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-        req_msg = "User(#:same/@:new context):\n"
-        inp_msg = req_msg
-        msg = ""
-        while True:
-            gen_new: bool = False
-            umsg = input(inp_msg)
-            umsg = umsg.strip()
-            if umsg == "$":
-                break
-            elif umsg in ["#", "@"] or len(umsg) > size:
-                match umsg[:1]:
-                    case "#":
-                        pass
-                    case "@":
-                        gen_new = True
-                    case _:
-                        msg += umsg + " "
-                        inp_msg = ""
-                        continue
-
-                umsg = umsg[1:].strip()
-                msg += umsg
-                if (gen_new and msg) or not gen_new:
-                    self.graph_proc(msg, coid)
-                if gen_new:
-                    coid = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-                inp_msg = req_msg
-                msg = ""
 
     def graph_make(self) -> None:
         """Make LangGraph graph."""
@@ -167,8 +138,8 @@ class LG:
         :param umsg: User message as input.
         :param coid: User message context id.
         """
-        config = {"configurable": {"thread_id": "2"}}
-        print("\nSmart AI Response:")
+        config = RunnableConfig(configurable={"thread_id": "2"})
+        print(f"\nSmart AI {self.olm.name}:")
         for event in self.graph.stream(
             {
                 "messages": [
@@ -190,8 +161,12 @@ class LG:
                 print(msg)
                 print("-" * 80)
 
-    @staticmethod
-    def anode_smart() -> AgentNode:
+    def change_llm(self, olm: OLM) -> None:
+        """Change llm model."""
+        self.olm = olm
+        self.smartAN.change_llm(olm)
+
+    def anode_smart(self) -> AgentNode:
         """Create  a smart agent node."""
         name = "SmartAgentNode"
         system_message = (
@@ -210,4 +185,6 @@ class LG:
                 MessagesPlaceholder(variable_name="messages"),
             ]
         )
-        return AgentNode(prompt, name=name, system_message=system_message)
+        return AgentNode(
+            prompt, self.olm.get_llm(), name=name, system_message=system_message
+        )
