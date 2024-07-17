@@ -10,6 +10,7 @@ from datetime import datetime
 
 from lang.prod.lg import LG
 from lang.prod.lm import EOM, OLM
+from lang.prod.prompt import Prompt
 
 
 class ICMD:
@@ -19,6 +20,7 @@ class ICMD:
         "*: Change your smart AI assistant.\n"
         "#: The next question will be in the same context.\n"
         "@: The next question will be in a new context.\n"
+        "^: Retrieve answers from a web link's domain and path.\n"
         "$: Quit.\n"
         "Please enter your question:\n"
     )
@@ -63,6 +65,8 @@ class ICMD:
                 break
             elif uimsg == "*":
                 self.change_assistant()
+            elif uimsg == "^":
+                cmsg += Prompt.Search_Website
             elif uimsg in ["#", "@"] or len(uimsg) > size:
                 match uimsg[:1]:
                     case "#":

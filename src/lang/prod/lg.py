@@ -8,6 +8,7 @@ from collections.abc import Callable, Sequence
 from typing import Annotated, TypedDict
 
 from lang.prod.lm import OLM
+from lang.prod.prompt import Prompt
 from lang.util.decorators import Timer
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import (
@@ -29,7 +30,7 @@ class AgentState(TypedDict):
     """State between each agent/node."""
 
     messages: Annotated[Sequence[BaseMessage], add_messages]
-    coid: str  # context id
+    cid: str  # context id
     sender: str
 
 
@@ -38,20 +39,18 @@ class AgentNode:
 
     def __init__(
         self,
+        name: str,
         prompt: ChatPromptTemplate,
         llm: BaseChatModel,
         tools: list[Tool] | None = None,
-        **kwargs: str,
     ):
         """Class initialization."""
-        # name for the agent and node
-        self.name: str = kwargs["name"]
+        # name of the agent node
+        self.name: str = name
         # context id
-        self.coid: str | None = None
+        self.cid: str | None = None
         self.prompt: ChatPromptTemplate = prompt
-        self.prompt = self.prompt.partial(
-            system_message=kwargs["system_message"]
-        )
+        self.llm: BaseChatModel = llm
         self.tools: list[Tool] | None = tools
         if self.tools is not None:
             self.prompt = self.prompt.partial(
@@ -59,15 +58,19 @@ class AgentNode:
             )
 
         self.agent: Runnable = self.prompt | (
-            llm.bind_tools(self.tools) if self.tools is not None else llm
+            self.llm.bind_tools(self.tools)
+            if self.tools is not None
+            else self.llm
         )
         self.node: Callable[[AgentState], AgentState] = self.build_node
 
-    def change_llm(self, olm: OLM) -> None:
+    def change_llm(self, llm: BaseChatModel) -> None:
         """Change agent llm."""
-        llm = olm.get_llm()
+        self.llm = llm
         self.agent = self.prompt | (
-            llm.bind_tools(self.tools) if self.tools is not None else llm
+            self.llm.bind_tools(self.tools)
+            if self.tools is not None
+            else self.llm
         )
 
     def build_node(self, state: AgentState) -> AgentState:
@@ -76,19 +79,19 @@ class AgentNode:
 
         It is a function to run a specific task.
         """
-        if self.coid is None:
-            self.coid = state["coid"]
-        elif state["coid"] != self.coid:
+        if self.cid is None:
+            self.cid = state["cid"]
+        elif state["cid"] != self.cid:
             # In a new context it keeps the last human message
             state["messages"] = [state["messages"][-1]]
-            self.coid = state["coid"]
+            self.cid = state["cid"]
         else:
             # In an existing context, it keeps all messages
             # with the same context ID
             state["messages"] = [
                 msg
                 for msg in state["messages"]
-                if msg.additional_kwargs.get("coid") == self.coid
+                if msg.additional_kwargs.get("cid") == self.cid
             ]
 
         result = self.agent.invoke(state)
@@ -100,10 +103,10 @@ class AgentNode:
                 **result.dict(exclude={"type", "name"}),
                 name=self.name,
             )
-            result.additional_kwargs["coid"] = self.coid
+            result.additional_kwargs["cid"] = self.cid
         return {
             "messages": [result],
-            "coid": self.coid,
+            "cid": self.cid,
             "sender": self.name,
         }
 
@@ -130,24 +133,22 @@ class LG:
     def graph_proc(
         self,
         umsg: str,  # user message
-        coid: str,  # context id
+        cid: str,  # context id
     ) -> None:
         """
         Process LangGraph workflow.
 
         :param umsg: User message as input.
-        :param coid: User message context id.
+        :param cid: User message context id.
         """
         config = RunnableConfig(configurable={"thread_id": "2"})
         print(f"\nSmart AI {self.olm.name}:")
         for event in self.graph.stream(
             {
                 "messages": [
-                    HumanMessage(
-                        content=umsg, additional_kwargs={"coid": coid}
-                    ),
+                    HumanMessage(content=umsg, additional_kwargs={"cid": cid}),
                 ],
-                "coid": coid,
+                "cid": cid,
                 "sender": "User",
             },
             config,
@@ -162,29 +163,23 @@ class LG:
                 print("-" * 80)
 
     def change_llm(self, olm: OLM) -> None:
-        """Change llm model."""
+        """Change llm model method."""
         self.olm = olm
-        self.smartAN.change_llm(olm)
+        self.smartAN.change_llm(self.olm.get_llm())
 
     def anode_smart(self) -> AgentNode:
         """Create  a smart agent node."""
         name = "SmartAgentNode"
-        system_message = (
-            "Answer users' questions directly and "
-            "no prompts should be present before or after answering."
-            "Each sentence in the response should be written on its own line."
-        )
+        # system message
+        sysmsg = Prompt.System_Message
         prompt = ChatPromptTemplate.from_messages(
             [
-                (
-                    "system",
-                    "You are a helpful AI assistant."
-                    "Please provide a result with no more than three sentences."
-                    "\n{system_message}",
-                ),
+                ("system", sysmsg),
                 MessagesPlaceholder(variable_name="messages"),
             ]
         )
         return AgentNode(
-            prompt, self.olm.get_llm(), name=name, system_message=system_message
+            name,
+            prompt,
+            self.olm.get_llm(),
         )
