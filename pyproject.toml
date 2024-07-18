@@ -32,6 +32,8 @@ python_version = "3.12"
 [[tool.mypy.overrides]]
 module = [
     "lang.*",
+    "pytube.*",
+    "yt_dlp.*",
 ]
 ignore_missing_imports = true
 
