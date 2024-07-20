@@ -14,10 +14,11 @@ from langchain_core.runnables.base import Runnable
 class EOM(StrEnum):
     """Enum of Ollama Local Model Names."""
 
-    L08 = "llama3"
-    P14 = "phi3:medium"
+    # What is your Knowledge cutoff date?
+    L08 = "llama3"  # December 2022
+    P14 = "phi3:medium"  # December 2021
     G27 = "gemma2:27b"
-    L70 = "llama3:70b"
+    L70 = "llama3:70b"  # December 2021
 
 
 class OLM:  # ChatOllama local model

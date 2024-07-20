@@ -3,16 +3,17 @@
 !/LICENSE
 !/README.md
 !/pyproject.toml
-!/bin/
-!/doc/
 !/env/
+!/doc/
 !/src/
 
 /*/**/*
-!/*/**/*/
+!/doc/**/*/
+!/src/lang/
+!/src/lang/**/*/
 
 !/env/pack.py
 !/env/lang.txt
 !/env/ubuntu.sh
-!/doc/*.md
+!/doc/**/*.md
 !/src/lang/**/*.py

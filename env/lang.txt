@@ -1,9 +1,9 @@
 pip==24.1.2
-setuptools==71.0.0
+setuptools==71.0.4
 wheel==0.43.0
 pip-autoremove==0.10.0
-ruff==0.5.2
-mypy==1.10.1
+ruff==0.5.3
+mypy==1.11.0
 pytube==15.0.0
 yt-dlp==2024.7.16
 beautifulsoup4==4.12.3
@@ -12,4 +12,6 @@ langchainhub==0.1.20
 langchain_community==0.2.7
 langchain-chroma==0.1.2
 langchain-huggingface==0.0.3
-langgraph==0.1.8
+langgraph==0.1.9
+tavily-python==0.3.5
+selectolax==0.3.21
