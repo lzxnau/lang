@@ -45,7 +45,7 @@ class ForumScraper:
 
         return True
 
-    async def fetch_login_page(self):
+    async def fetch_login_page(self) -> str:
         """Fetch login page."""
         response = await self.client.get(
             self.cfg.forum_url, follow_redirects=True
@@ -94,7 +94,7 @@ class ForumScraper:
 
         return action, form_data
 
-    async def submit_login_form(self, action, form_data):
+    async def submit_login_form(self, action, form_data) -> httpx.Response:
         """Submit login form."""
         login_url = self.cfg.forum_url + action
 
@@ -111,7 +111,7 @@ class ForumScraper:
 
         return response
 
-    async def save_cookies(self):
+    async def save_cookies(self) -> None:
         """Save cookies."""
         cookies = self.client.cookies.jar
         for cookie in cookies:
@@ -141,7 +141,7 @@ class ForumScraper:
 
         return False
 
-    async def login(self):
+    async def login(self) -> httpx.Response:
         """Login method."""
         login_page_html = await self.fetch_login_page()
         action, form_data = self.parse_login_form(login_page_html)
@@ -149,27 +149,34 @@ class ForumScraper:
         await self.save_cookies()
         return response
 
-    async def access_protected_page(self):
+    async def access_protected_page(
+        self, path: str | None = None
+    ) -> str | None:
         """Access protected page."""
-        if await self.load_cookies():
-            protected_page_url = self.cfg.forum_url + self.cfg.base_path
-            response = await self.client.get(protected_page_url)
-        else:
+        if not (self.cfg.cookie_pass and await self.load_cookies()):
             if not self.cfg_init():
                 print("Enter login detail failed.")
-                return
+                return None
+            await self.login()
 
-            response = await self.login()
-
+        protected_page_url = self.cfg.forum_url + self.cfg.base_path
+        if path:
+            protected_page_url += path
+        response = await self.client.get(protected_page_url)
+        print(type(response))
         try:
             response.raise_for_status()
-            print(response.text)
+            return response.text
         except httpx.HTTPError as he:
             print(he)
 
-    async def process(self):
-        """Process main function."""
-        await self.access_protected_page()
+        return None
+
+    async def process(self) -> None:
+        """Process main function for testing."""
+        result = await self.access_protected_page()
+        if result:
+            print(result)
 
 
 if __name__ == "__main__":
