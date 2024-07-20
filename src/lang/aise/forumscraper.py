@@ -10,43 +10,12 @@ import asyncio
 import json
 
 import httpx
-from pydantic import BaseModel
+from lang.aise.foruminfo import ForumConfig
 from selectolax.lexbor import LexborHTMLParser as HTMLParser
-
-
-class ForumConfig(BaseModel):
-    """Forum Config Model."""
-
-    forum_name: str
-    forum_url: str
-    forum_user: str
-    username: str = ""
-    password: str = ""
-    cookie_file: str = ""
-    cookie_checkbox: bool = False
-    cookie_checkbox_name: str = ""
-    login_form: str
-    login_sel: bool = False
-    login_sel_name: str = ""
-    base_path: str = ""
 
 
 class ForumScraper:
     """Forum Scraper class."""
-
-    Forum_List: list[ForumConfig] = [
-        ForumConfig(
-            forum_name="oursteps",
-            forum_url="https://www.oursteps.com.au/bbs/",
-            forum_user="azhz",
-            login_form="lsform",
-            cookie_checkbox=True,
-            cookie_checkbox_name="cookietime",
-            login_sel=True,
-            login_sel_name="fastloginfield",
-            base_path="forum.php",
-        ),
-    ]
 
     def __init__(self, cfg: ForumConfig):
         """Class initialization."""
@@ -54,13 +23,6 @@ class ForumScraper:
         self.client = httpx.AsyncClient()
 
     def cfg_init(self) -> bool:
-        """Initialize ForumConfig class."""
-        self.cfg.cookie_file = (
-            f"cfg/{self.cfg.forum_name}-{self.cfg.forum_user}-cookie.json"
-        )
-        return True
-
-    def cfg_login(self) -> bool:
         """Initialize ForumConfig login details."""
         print(f"Forum: {self.cfg.forum_name} User:{self.cfg.forum_user}")
 
@@ -170,9 +132,14 @@ class ForumScraper:
                     for name, value in cookies.items():
                         self.client.cookies.set(name, value, domain=domain)
             return True
+        except FileNotFoundError:
+            pass
+        except json.decoder.JSONDecodeError as jde:
+            print(jde)
         except Exception as e:
             print(e)
-            return False
+
+        return False
 
     async def login(self):
         """Login method."""
@@ -184,12 +151,11 @@ class ForumScraper:
 
     async def access_protected_page(self):
         """Access protected page."""
-        lc = await self.load_cookies()
-        if lc:
+        if await self.load_cookies():
             protected_page_url = self.cfg.forum_url + self.cfg.base_path
             response = await self.client.get(protected_page_url)
         else:
-            if not self.cfg_login():
+            if not self.cfg_init():
                 print("Enter login detail failed.")
                 return
 
@@ -203,12 +169,16 @@ class ForumScraper:
 
     async def process(self):
         """Process main function."""
-        if not self.cfg_init():
-            return
-
         await self.access_protected_page()
 
 
 if __name__ == "__main__":
-    fs = ForumScraper(ForumScraper.Forum_List[0])
-    asyncio.run(fs.process())
+    from lang.aise.foruminfo import ForumList
+
+    forum_name = "oursteps"
+    fc = ForumList.get_forum_config(forum_name)
+    if fc is None:
+        print("Forum config not found.")
+    else:
+        fs = ForumScraper(fc)
+        asyncio.run(fs.process())
