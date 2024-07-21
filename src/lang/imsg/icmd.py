@@ -8,6 +8,7 @@ Version: 2024.07.17.01
 
 from datetime import datetime
 
+from aioconsole import ainput
 from lang.prod.lg import LG
 from lang.prod.lm import EOM, OLM
 from lang.prod.prompt import Prompt
@@ -48,9 +49,8 @@ class ICMD:
             self.Assistant_List[0][1],
         )
         self.lg = LG(self.ass)
-        self.input()
 
-    def input(self, size: int = 6) -> None:
+    async def input(self, size: int = 6) -> None:
         """Input method from user."""
         print(self.Prompt_Welcome)
         prompt = self.Prompt_Normal
@@ -60,7 +60,8 @@ class ICMD:
             # Is new  context
             inc: bool = False
             # User input message
-            uimsg = input(prompt).strip()
+            uimsg = await ainput(prompt)
+            uimsg = uimsg.strip()
             if uimsg == "$":
                 break
             elif uimsg == "*":

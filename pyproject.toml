@@ -32,6 +32,7 @@ python_version = "3.12"
 [[tool.mypy.overrides]]
 module = [
     "lang.*",
+    "aioconsole.*",
     "pytube.*",
     "yt_dlp.*",
 ]

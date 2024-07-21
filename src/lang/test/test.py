@@ -4,6 +4,8 @@ Test Model.
 Version: 2024.07.09.01
 """
 
+import asyncio
+
 from lang.imsg.icmd import ICMD
 
 
@@ -14,16 +16,20 @@ class Test:
         """Class initialization."""
         self.name = "Test"
 
-    def process(self) -> None:
+    async def process(self) -> None:
         """Process function."""
         print(f"This is {self.name} class.\n")
-        self.test_icmd()
 
-    def test_icmd(self) -> None:
+        await self.test_icmd()
+
+        await asyncio.sleep(0)
+
+    async def test_icmd(self) -> None:
         """Test user command line input process."""
-        ICMD()
+        icmd = ICMD()
+        await icmd.input()
 
 
 if __name__ == "__main__":
     t = Test()
-    t.process()
+    asyncio.run(t.process())
