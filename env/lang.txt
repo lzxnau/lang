@@ -1,5 +1,5 @@
 pip==24.1.2
-setuptools==71.0.4
+setuptools==71.1.0
 wheel==0.43.0
 pip-autoremove==0.10.0
 ruff==0.5.4
