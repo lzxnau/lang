@@ -14,11 +14,21 @@ from langchain_core.runnables.base import Runnable
 class EOM(StrEnum):
     """Enum of Ollama Local Model Names."""
 
-    # What is your Knowledge cutoff date?
-    L08 = "llama3"  # December 2022
-    P14 = "phi3:medium"  # December 2021
-    G27 = "gemma2:27b"
-    L70 = "llama3:70b"  # December 2021
+    # Meta
+    L008 = "llama3.1"          # context window 128k
+    L070 = "llama3.1:70b"      # context window 128k
+
+    # Microsoft
+    P003 = "phi3:mini-128k"    # context window 128k
+    P014 = "phi3:medium-128k"  # context window 128k
+
+    # Mistral and Nvidia
+    M012 = "mistral-nemo"      # context window 128k
+    M123 = "mistral-large"     # context window 128k
+
+    # Google
+    G009 = "gemma2"            # context window 8k
+    G027 = "gemma2:27b"        # context window 8k
 
 
 class OLM:  # ChatOllama local model

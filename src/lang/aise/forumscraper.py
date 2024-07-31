@@ -6,6 +6,7 @@ AI Searching Engine Package: Web Searching Engine.
 Version: 2024.07.19.01
 """
 
+import logging
 import asyncio
 import json
 
@@ -114,9 +115,6 @@ class ForumScraper:
     async def save_cookies(self) -> None:
         """Save cookies."""
         cookies = self.client.cookies.jar
-        for cookie in cookies:
-            print(cookie)
-
         cookie_dict = {
             cookie.domain: {cookie.name: cookie.value} for cookie in cookies
         }
@@ -135,9 +133,9 @@ class ForumScraper:
         except FileNotFoundError:
             pass
         except json.decoder.JSONDecodeError as jde:
-            print(jde)
+            logging.error(jde)
         except Exception as e:
-            print(e)
+            logging.error(e)
 
         return False
 
@@ -155,7 +153,7 @@ class ForumScraper:
         """Access protected page."""
         if not (self.cfg.cookie_pass and await self.load_cookies()):
             if not self.cfg_init():
-                print("Enter login detail failed.")
+                logging.error("Enter login detail failed.")
                 return None
             await self.login()
 
@@ -163,12 +161,11 @@ class ForumScraper:
         if path:
             protected_page_url += path
         response = await self.client.get(protected_page_url)
-        print(type(response))
         try:
             response.raise_for_status()
             return response.text
         except httpx.HTTPError as he:
-            print(he)
+            logging.error(he)
 
         return None
 
@@ -185,7 +182,7 @@ if __name__ == "__main__":
     forum_name = "oursteps"
     fc = ForumList.get_forum_config(forum_name)
     if fc is None:
-        print("Forum config not found.")
+        logging.warning("Forum config not found.")
     else:
         fs = ForumScraper(fc)
         asyncio.run(fs.process())

@@ -26,17 +26,21 @@ class ICMD:
         "Please enter your question:\n"
     )
     Prompt_Assistant: str = (
-        "1: L08, 2: P14, 3: G27, 4: L70\n"
-        "Please select your assistant and enter the number accordingly:"
+        "1:L008 2:L070 3:M012 4:M123 5:P003 6:P014 7:G009 8:G027\n"
+        "Please select your assistant:"
     )
     Prompt_Normal: str = "User(#:same/@:new context):\n"
     Prompt_Blank: str = ""
 
     Assistant_List: list[list[str]] = [
-        ["L08", EOM.L08],
-        ["P14", EOM.P14],
-        ["G27", EOM.G27],
-        ["L70", EOM.L70],
+        ["L008", EOM.L008],
+        ["L070", EOM.L070],
+        ["M012", EOM.M012],
+        ["M123", EOM.M123],
+        ["P003", EOM.P003],
+        ["P014", EOM.P014],
+        ["G009", EOM.G009],
+        ["G027", EOM.G027],
     ]
 
     def __init__(self):
@@ -65,7 +69,7 @@ class ICMD:
             if uimsg == "$":
                 break
             elif uimsg == "*":
-                self.change_assistant()
+                await self.change_assistant()
             elif uimsg == "^":
                 cmsg += Prompt.Search_Website
             elif uimsg in ["#", "@"] or len(uimsg) > size:
@@ -88,11 +92,12 @@ class ICMD:
                 prompt = self.Prompt_Normal
                 cmsg = ""
 
-    def change_assistant(self) -> None:
+    async def change_assistant(self) -> None:
         """Change assistant."""
         # Smart assistant count
         count: int = len(self.Assistant_List) + 1
-        uimsg = input(self.Prompt_Assistant).strip()
+        uimsg = await ainput(self.Prompt_Assistant)
+        uimsg.strip()
         for i in range(3):
             if uimsg.isdigit() and 0 < int(uimsg) < count:
                 self.ass = OLM(
