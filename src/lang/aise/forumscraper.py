@@ -6,12 +6,13 @@ AI Searching Engine Package: Web Searching Engine.
 Version: 2024.07.19.01
 """
 
-import logging
 import asyncio
 import json
+import logging
 
 import httpx
 from lang.aise.foruminfo import ForumConfig
+from lang.aise.site.oursteps import OurSteps
 from selectolax.lexbor import LexborHTMLParser as HTMLParser
 
 
@@ -159,7 +160,7 @@ class ForumScraper:
 
         protected_page_url = self.cfg.forum_url + self.cfg.base_path
         if path:
-            protected_page_url += path
+            protected_page_url = path
         response = await self.client.get(protected_page_url)
         try:
             response.raise_for_status()
@@ -173,7 +174,11 @@ class ForumScraper:
         """Process main function for testing."""
         result = await self.access_protected_page()
         if result:
-            print(result)
+            path = OurSteps.list_boards(result)
+            url = f"{self.cfg.forum_url}{path}"
+            page = await self.access_protected_page(url)
+            if page:
+                OurSteps.list_threads(page)
 
 
 if __name__ == "__main__":

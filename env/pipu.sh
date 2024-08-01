@@ -12,13 +12,13 @@ venv_install() {
   rm -rf $VENV
   $PY -m venv $VENV &&
     source $VENV/bin/activate &&
-    pip install -r "$RPATH"/$VENV.txt && echo
+    pip install -r "$RPATH"/$VENV.txt > /dev/null || exit
 }
 
 venv_check() {
   source $VENV/bin/activate || venv_install
   pip list -o >$VENV/up.txt &&
-    eval "$(python pack.py)" && echo
+    eval "$(python pack.py)" || exit
   echo "$VENV-->$PIP_CHANGES"
   if [ "$PIP_CHANGES" == "True" ]; then
     venv_install
