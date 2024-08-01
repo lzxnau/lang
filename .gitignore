@@ -15,5 +15,6 @@
 !/env/pack.py
 !/env/lang.txt
 !/env/pipu.sh
+!/env/runa.sh
 !/doc/**/*.md
 !/src/lang/**/*.py
