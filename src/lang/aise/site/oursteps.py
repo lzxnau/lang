@@ -27,7 +27,8 @@ class OurSteps:
         for node in nodes:
             if node.text() in OurSteps.Boards:
                 print(f"{idx}: {node.text()}")
-                urls.append(node.attributes["href"])
+                if node.attributes["href"] is not None:
+                    urls.append(node.attributes["href"])
                 idx += 1
                 if idx > len(OurSteps.Boards):
                     break

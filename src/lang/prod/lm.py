@@ -19,7 +19,7 @@ class EOM(StrEnum):
     L070 = "llama3.1:70b"  # 8k = 47 GB
 
     # Microsoft
-    P003 = "phi3:mini-128k"  #
+    P003 = "phi3:mini-128k"
     P014 = "phi3:medium-128k"  # context window 128k
 
     # Mistral and Nvidia
@@ -39,13 +39,14 @@ class OLM:  # ChatOllama local model
         name: str,
         mn: str,
         form: str = "",
-        temp: float = 0.1,
-        keep_alive: str = "-1m",  # 0 for stop
-        num_thread: int = 16,  # max 16
-        num_ctx: int = 8192,  # max 131072 for llama3.1 and mistral-nemo
-        num_predict: int = 1024,  # -1 for infinite
     ):
         """Class initialization."""
+        temp: float = 0.1
+        keep_alive: str = "-1m"  # 0 for stop
+        num_thread: int = 16  # max 16
+        num_ctx: int = 8192  # max 131072 for llama3.1 and mistral-nemo
+        num_predict: int = 1024  # -1 for infinite
+
         # assistant name
         self.name = name
 

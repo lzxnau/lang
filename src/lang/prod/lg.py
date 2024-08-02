@@ -134,7 +134,7 @@ class LG:
         self,
         umsg: str,  # user message
         cid: str,  # context id
-    ) -> None:
+    ) -> str:
         """
         Process LangGraph workflow.
 
@@ -161,6 +161,7 @@ class LG:
                     msg = msg.content.replace("\n\n", "\n")
                 print(msg)
                 print("-" * 80)
+        return msg
 
     def change_llm(self, olm: OLM) -> None:
         """Change llm model method."""

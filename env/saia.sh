@@ -8,4 +8,4 @@ export PYTHONUNBUFFERED=1
 export TOKENIZERS_PARALLELISM="false"
 export USER_AGENT="LangChain Jeff"
 export PYTHONPATH="$HOME"/pgit/lang/src
-python3.12 src/lang/test/test.py
+python3.12 -m streamlit run src/lang/chat/chatbot.py
