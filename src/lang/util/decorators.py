@@ -17,8 +17,8 @@ class Timer:
         def wrapper(*args, **kwargs):
             start_time = time.time()
             result = fxn(*args, **kwargs)
-            Timer.helper_run_time(args, fxn, start_time)
-            return result
+            rtime = Timer.helper_run_time(args, fxn, start_time)
+            return result, rtime
 
         return wrapper
 
@@ -35,7 +35,7 @@ class Timer:
         return wrapper
 
     @staticmethod
-    def helper_run_time(args, fxn, start_time) -> None:
+    def helper_run_time(args, fxn, start_time) -> str:
         """Get running time: helper function."""
         end_time = time.time()
         elapsed_time = end_time - start_time
@@ -47,3 +47,4 @@ class Timer:
             rtime = f"{minutes}m {seconds}s"
         text = f"{class_name}.{fxn.__name__} took {rtime} to execute.\n"
         print(text)
+        return rtime
