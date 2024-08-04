@@ -9,8 +9,8 @@ Version: 2024.07.17.01
 from datetime import datetime
 
 from aioconsole import ainput
+from lang.llms.info import Info
 from lang.prod.lg import LG
-from lang.prod.lm import EOM, OLM
 from lang.prod.prompt import Prompt
 
 
@@ -32,26 +32,13 @@ class ICMD:
     Prompt_Normal: str = "User(#:same/@:new context):\n"
     Prompt_Blank: str = ""
 
-    Assistant_List: list[list[str]] = [
-        ["L008", EOM.L008],
-        ["L070", EOM.L070],
-        ["M012", EOM.M012],
-        ["M123", EOM.M123],
-        ["P003", EOM.P003],
-        ["P014", EOM.P014],
-        ["G009", EOM.G009],
-        ["G027", EOM.G027],
-    ]
-
     def __init__(self):
         """Class initialization."""
         # Context ID
         self.cid = datetime.now().strftime("%Y%m%d%H%M%S")
+
         # Smart Assistant
-        self.ass = OLM(
-            self.Assistant_List[0][0],
-            self.Assistant_List[0][1],
-        )
+        self.ass = Info.Model_List.get(Info.Assistant_List[0][0])
         self.lg = LG(self.ass)
 
     async def input(self, size: int = 6) -> None:
@@ -95,14 +82,13 @@ class ICMD:
     async def change_assistant(self) -> None:
         """Change assistant."""
         # Smart assistant count
-        count: int = len(self.Assistant_List) + 1
+        count: int = len(Info.Assistant_List) + 1
         uimsg = await ainput(self.Prompt_Assistant)
         uimsg.strip()
         for i in range(3):
             if uimsg.isdigit() and 0 < int(uimsg) < count:
-                self.ass = OLM(
-                    self.Assistant_List[int(uimsg) - 1][0],
-                    self.Assistant_List[int(uimsg) - 1][1],
+                self.ass = Info.Model_List.get(
+                    Info.Assistant_List[int(uimsg) - 1][0]
                 )
                 self.lg.change_llm(self.ass)
                 break

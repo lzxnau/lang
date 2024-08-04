@@ -7,7 +7,7 @@ Version: 2024.07.16.03
 from collections.abc import Callable, Sequence
 from typing import Annotated, TypedDict
 
-from lang.prod.lm import OLM
+from lang.llms.info import OLM
 from lang.prod.prompt import Prompt
 from lang.util.decorators import Timer
 from langchain_core.language_models import BaseChatModel
@@ -134,13 +134,21 @@ class LG:
         self,
         umsg: str,  # user message
         cid: str,  # context id
+        act: bool | None = None,  # action status
     ) -> str:
         """
         Process LangGraph workflow.
 
         :param umsg: User message as input.
         :param cid: User message context id.
+        :param act:  Whether to save or classify the message.
+        :return: The inference from LLM.
         """
+        if act is not None and act:
+            msg = ""
+        else:
+            msg = ""
+
         config = RunnableConfig(configurable={"thread_id": "2"})
         print(f"\nSmart AI {self.olm.name}:")
         for event in self.graph.stream(
@@ -161,6 +169,12 @@ class LG:
                     msg = msg.content.replace("\n\n", "\n")
                 print(msg)
                 print("-" * 80)
+
+        if act is not None:
+            if act:
+                pass
+            else:
+                pass
         return msg
 
     def change_llm(self, olm: OLM) -> None:
