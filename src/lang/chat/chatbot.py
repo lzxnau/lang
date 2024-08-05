@@ -1,7 +1,7 @@
 """
 Chatbot Module.
 
-Version: 2024.08.01.01
+Version: 2024.08.05.02
 """
 
 from datetime import datetime
@@ -68,10 +68,10 @@ class Chatbot:
         if st.session_state.chat_input == "#":
             st.session_state.timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
             st.session_state.messages = []
+        elif st.session_state.chat_input is not None:
+            Chatbot.chat_submit()
         else:
             Chatbot.msg_print()
-            if st.session_state.chat_input is not None:
-                Chatbot.chat_submit()
 
     @staticmethod
     def model_change() -> None:
@@ -97,11 +97,10 @@ class Chatbot:
                 Chatbot.msg_append()
             elif len(st.session_state.messages) == 0:
                 return
+            else:
+                Chatbot.msg_print()
 
-            req_msg = [
-                f"{m['role']}: {m['content']}"
-                for m in st.session_state.messages
-            ]
+            req_msg = st.session_state.messages[-1]["content"]
             if st.session_state.sw_class:
                 act = True
             elif st.session_state.sw_save:
@@ -110,7 +109,7 @@ class Chatbot:
                 act = None
 
             out_msg, rtime = st.session_state.lg.graph_proc(
-                "\n".join(req_msg),
+                req_msg,
                 st.session_state.timestamp,
                 act,
             )
@@ -120,21 +119,34 @@ class Chatbot:
                     "role": "ai",
                     "content": out_msg,
                     "rtime": rtime,
+                    "name": st.session_state.model_key,
                 }
             )
             st.chat_message("ai").write(out_msg)
             st.caption(
-                f"<p style='text-align: right;'>耗时: {rtime}  </p>",
+                (
+                    "<div style='text-align: right;"
+                    "padding: 0 10px 20px 10px;'>"
+                    "<p style='border: 1px solid grey; display: inline;"
+                    "border-radius: 5px; padding: 2px;'>"
+                    f"{st.session_state.model_key}: {rtime}</p></div>"
+                ),
                 unsafe_allow_html=True,
             )
 
     @staticmethod
-    def msg_append():
-        """Append message."""
-        st.session_state.messages.append(
-            {"role": "human", "content": st.session_state.chat_input}
-        )
-        st.chat_message("human").write(st.session_state.chat_input)
+    def msg_append() -> None:
+        """Merge message fxn."""
+        if any(msgs := st.session_state.messages) and (
+            msgs[-1]["role"] == "user"
+        ):
+            msgs[-1]["content"] += "\n\n" + st.session_state.chat_input
+            print(msgs[-1]["content"])
+        else:
+            st.session_state.messages.append(
+                {"role": "user", "content": st.session_state.chat_input}
+            )
+        Chatbot.msg_print()
 
     @staticmethod
     def msg_print():
@@ -144,8 +156,11 @@ class Chatbot:
             if msg["role"] == "ai":
                 st.caption(
                     (
-                        "<p style='text-align: right;'>"
-                        f"耗时: {msg['rtime']}  </p>"
+                        "<div style='text-align: right;"
+                        "padding: 0 10px 20px 10px;'>"
+                        "<p style='border: 1px solid grey; display: inline;"
+                        "border-radius: 5px; padding: 2px;'>"
+                        f"{msg['name']}: {msg['rtime']}</p></div>"
                     ),
                     unsafe_allow_html=True,
                 )
