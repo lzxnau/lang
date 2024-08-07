@@ -5,6 +5,7 @@ Version: 2024.08.05.02
 """
 
 from datetime import datetime
+from pathlib import Path
 
 import streamlit as st
 from lang.llms.info import Info
@@ -95,7 +96,10 @@ class Chatbot:
         else:
             if st.session_state.chat_input != "@":
                 Chatbot.msg_append()
-            elif len(st.session_state.messages) == 0:
+            elif (
+                len(st.session_state.messages) == 0
+                or st.session_state.messages[-1]["role"] == "ai"
+            ):
                 return
             else:
                 Chatbot.msg_print()
@@ -113,6 +117,8 @@ class Chatbot:
                 st.session_state.timestamp,
                 act,
             )
+
+            out_msg = Chatbot.file_save(act, out_msg, rtime)
 
             st.session_state.messages.append(
                 {
@@ -133,6 +139,43 @@ class Chatbot:
                 ),
                 unsafe_allow_html=True,
             )
+
+    @staticmethod
+    def file_save(act: bool | None, out_msg: str, rtime: str) -> str:
+        """Save conversation file."""
+        file = (
+            f"/{st.session_state.timestamp}-"
+            f"{st.session_state.model_key}-{rtime}.msg"
+        )
+        path = "out/{}"
+        match act:
+            case True:
+                path = path.format("topics")
+            case False:
+                path = path.format("normal")
+                out_msg, tags = out_msg.split("#### Tag List:")
+                tags = "#### Tag List:" + tags
+                tags_file = f"{path}/taglist.tag"
+                try:
+                    with open(tags_file, "w") as tf:
+                        tf.write(tags)
+                except FileNotFoundError as fe:
+                    print(fe)
+            case None:
+                path = path.format("history")
+        file = path + file
+        try:
+            # delete old conversation message with the same context
+            for mfile in Path(path).iterdir():
+                if mfile.name.startswith(f"{st.session_state.timestamp}-"):
+                    mfile.unlink()
+            # save the latest conversation message to disk
+            with open(file, "w") as f:
+                f.write(out_msg)
+        except FileNotFoundError as fe:
+            print(fe)
+
+        return out_msg
 
     @staticmethod
     def msg_append() -> None:

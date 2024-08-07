@@ -44,7 +44,7 @@ class Timer:
         if minutes == 0:
             rtime = f"{seconds}s"
         else:
-            rtime = f"{minutes}m {seconds}s"
+            rtime = f"{minutes}m{seconds}s"
         text = f"{class_name}.{fxn.__name__} took {rtime} to execute.\n"
         print(text)
         return rtime

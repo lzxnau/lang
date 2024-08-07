@@ -5,6 +5,7 @@ Version: 2024.07.16.03
 """
 
 from collections.abc import Callable, Sequence
+from pathlib import Path
 from typing import Annotated, TypedDict
 
 from lang.llms.info import OLM
@@ -73,6 +74,15 @@ class AgentNode:
             else self.llm
         )
 
+    def change_prompt(self, prompt) -> None:
+        """Change agent llm."""
+        self.prompt = prompt
+        self.agent = self.prompt | (
+            self.llm.bind_tools(self.tools)
+            if self.tools is not None
+            else self.llm
+        )
+
     def build_node(self, state: AgentState) -> AgentState:
         """
         Build a LangGraph node.
@@ -88,11 +98,22 @@ class AgentNode:
         else:
             # In an existing context, it keeps all messages
             # with the same context ID
-            state["messages"] = [
-                msg
-                for msg in state["messages"]
-                if msg.additional_kwargs.get("cid") == self.cid
-            ]
+            user_msg = state["messages"][-1]
+            ai_msg = next(
+                (
+                    item
+                    for item in reversed(state["messages"])
+                    if isinstance(item, AIMessage)
+                ),
+                None,
+            )
+            if ai_msg is not None:
+                if isinstance(ai_msg.content, str):
+                    req = ai_msg.content.split("\n#### Response:")[0]
+                    req = req.split("#### Request:\n")[1]
+                    if isinstance(user_msg.content, str):
+                        user_msg.content = req + "* " + user_msg.content
+            state["messages"] = [user_msg]
 
         result = self.agent.invoke(state)
 
@@ -144,11 +165,27 @@ class LG:
         :param act:  Whether to save or classify the message.
         :return: The inference from LLM.
         """
-        if act is not None and act:
-            msg = ""
-        else:
-            msg = ""
+        match act:
+            case None:  # save to history path
+                pass
+            case True:
+                pass
+            case False:
+                tags = Path("out/normal/taglist.tag").read_text()
+                tags = tags.split("#### Tag List:")[1]
+                tags = "#### Tag List:" + tags
+                umsg += "\n#### Tag:\n\n" + tags
+                sysmsg = Prompt.System_Message + Prompt.Classification_Message
+                self.smartAN.change_prompt(
+                    ChatPromptTemplate.from_messages(
+                        [
+                            ("system", sysmsg),
+                            MessagesPlaceholder(variable_name="messages"),
+                        ]
+                    )
+                )
 
+        msg = ""
         config = RunnableConfig(configurable={"thread_id": "2"})
         print(f"\nSmart AI {self.olm.name}:")
         for event in self.graph.stream(
@@ -170,11 +207,14 @@ class LG:
                 print(msg)
                 print("-" * 80)
 
-        if act is not None:
-            if act:
+        match act:
+            case None:  # save to history path
                 pass
-            else:
+            case True:
                 pass
+            case False:
+                pass
+
         return msg
 
     def change_llm(self, olm: OLM) -> None:

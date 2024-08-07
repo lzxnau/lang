@@ -36,7 +36,7 @@ class OLM:  # ChatOllama local model
         self.temperature = float(kwargs.get("temperature", "0.1"))
 
         # model duration time
-        self.keep_alive = kwargs.get("keep_alive", "1m")  # 0 for stop
+        self.keep_alive = kwargs.get("keep_alive", "3m")  # 0 for stop
 
         # model cpu numbers
         self.num_thread = int(kwargs.get("num_thread", "16"))  # max 16
