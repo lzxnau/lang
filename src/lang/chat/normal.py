@@ -1,5 +1,5 @@
 """
-SAIA: Normal chat Page Module.
+SAIA: Normal Chats Page Module.
 
 Version: 2024.08.07.02
 """
@@ -63,10 +63,7 @@ class Normal:
                             tag = tags[i * count + j]
                         except IndexError:
                             return
-                        cb_key = st.checkbox(
-                            tag,
-                            key=f"norm_{tag}",
-                        )
+                        cb_key = st.checkbox(tag, key=f"norm_{tag}", help="0")
                         st.session_state.tags_stat[i * count + j] = cb_key
 
     @staticmethod

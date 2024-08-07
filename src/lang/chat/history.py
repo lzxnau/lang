@@ -14,7 +14,7 @@ class History:
 
     def __init__(self) -> None:
         """Class Initialization."""
-        st.subheader("对话历史")
+        st.subheader("对话历史", divider=True)
 
         path = Path("out/history")
         files = sorted(

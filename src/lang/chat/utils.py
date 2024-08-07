@@ -32,7 +32,4 @@ class Utils:
             with col1:
                 st.write("##### :material/markdown:")
             with col2:
-                st.caption(
-                    "<p style='text-align: right'>" f"{tt}  {ai}  {dura}  </p>",
-                    unsafe_allow_html=True,
-                )
+                st.caption(f"{tt}  {ai}  {dura}")
